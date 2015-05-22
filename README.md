@@ -1,2 +1,2 @@
 # shoottheblues
-A simple click the ball game.
+A simple click the ball game created with Phaser.
