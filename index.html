@@ -1,0 +1,339 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+	<title>Shoot The Blues</title>
+	<script type="text/javascript" src="js/phaser.min.js">
+	</script>
+
+	<style type="text/css">
+		canvas {
+			cursor: crosshair;
+		}
+	</style>
+</head>
+
+<body bgcolor="#cff">
+
+
+	<div id="main" align="center" style="margin:60px">
+	</div>
+
+
+	<script type="text/javascript">
+		canvasH = 700 * 2 / 3;
+		canvasW = 500 * 2 / 3;
+		var balls;
+		var ball;
+		var wall, wall2;
+		startSpd = 90;
+		speed = startSpd;
+		tint = '';
+		shot = 0;
+		gameOver = false;
+		var circle;
+		var starRad = 130;
+		var startRad = starRad - 40;
+		var ang;
+		var ang2;
+		var barr;
+		var mul = 5;
+		var speedUp = .5;
+		v2 = 0;
+		level = 0;
+		levelFinished = false;
+		var finishedLevel = 0;
+		var cSc = 0;
+		var vf = 0;
+		var cursors;
+		var restart;
+		var bendFact = 1.75;
+		var score;
+		var bar;
+		var r = 50;
+		var t1, t2, t3;
+
+		var text;
+		var started = false;
+		var rebooted=false;
+
+		var df = [20, 15, 12, 10, 6];
+
+		var levelWidth = 60;
+
+
+		var game = new Phaser.Game(canvasW, canvasH, Phaser.AUTO, 'main', {
+			preload: preload,
+			create: create,
+			update: update,
+			render: render
+		});
+
+
+		function preload() {
+			game.load.image('ball', 'assets/ball.gif');
+			game.load.image('wall', 'assets/wall.jpg');
+			game.load.image('wall2', 'assets/wall2.jpg');
+			game.load.image('bar', 'assets/bar.jpg');
+			game.load.spritesheet('kaboom', 'assets/explode.png', 128, 128);
+
+		}
+
+		function create() {
+			game.stage.backgroundColor = '#E1C3FF';
+			game.physics.startSystem(Phaser.Physics.ARCADE);
+
+			wall = game.add.sprite(0, 0, 'wall');
+			wall2 = game.add.sprite(50, canvasH - wall.width, 'wall2');
+			bar = game.add.sprite(canvasW, 0, 'bar');
+			bar.anchor.set(.5);
+			bar.angle = 45;
+			r = bar.height / 2;
+			
+			bar.bringToTop();
+
+			game.physics.arcade.enable(wall);
+			game.physics.arcade.enable(wall2);
+
+			balls = game.add.group();
+			balls.enableBody = true;
+			balls.physicsBodyType = Phaser.Physics.ARCADE;
+
+			balls.setAll('anchor', 0.5);
+			balls.setAll('outOfBoundsKill', true);
+			balls.setAll('checkWorldBounds', true);
+			balls.x = canvasW;
+			balls.y = 0;
+		
+
+
+
+
+			var style = {
+				font: "35px verdana",
+				fill: "#0080FD",
+				align: "center"
+			};
+
+			var style2 = {
+				font: "16px verdana",
+				fill: "#0080FD",
+				align: "left"
+			};
+
+			text = game.add.text(game.world.centerX, game.world.centerY, '', style);
+			text.anchor.set(0.5);
+			score = game.add.text(16, 16, 'Score: ' + shot, style2);
+
+			cursors = game.input.keyboard.createCursorKeys();
+			restart = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+		}
+
+
+
+		function update() {
+			game.physics.arcade.overlap(wall, balls, clld, null, this);
+			game.physics.arcade.overlap(wall2, balls, swp, null, this);
+
+
+
+			if (shot % levelWidth == 0 && !levelFinished) {
+				levelFinished = true;
+				finishedLevel = parseInt(shot / levelWidth);
+
+
+				if (finishedLevel < df.length) {
+
+					if (finishedLevel != 0) {
+						kj = 'Level ' + finishedLevel + '\nCompleted!';
+						t1 = 1500;
+					} else {
+						if (!started) {
+							kj = 'Click On The \nBlue Balls To\n Make Them \n Green, Or They\n Will Explode! ';
+							t1 = 2000;
+						}
+					}
+					if(rebooted){
+						t1=0;
+						rebooted=false;
+					}
+					else{
+					showIt(0, kj, t1);
+					}
+					killAll();
+
+					level = level + 1;
+					levelBoot(level);
+					showIt(t1 + 50, 'Level ' + level, 1250);
+
+					game.time.events.add(Phaser.Timer.SECOND * (t1 + 1250) / 1000, function () {
+						addBall();
+
+					}, this);
+
+
+				} else {
+					killAll();
+					showIt(500, 'You Won', 0);
+					gameOver = true;
+				}
+
+			}
+
+			if (gameOver && restart.isDown)
+				levelBoot(0);
+
+			if (!gameOver)
+				score.text = 'Score: ' + shot;
+
+
+		}
+
+		function levelBoot(lvl) {
+			gameOver = false;
+			speed = startSpd;
+
+			if (lvl == 0) {
+				rebooted=true;
+				shot = 0;
+				level = 0;
+				levelFinished = false;
+				finishedLevel = 0;
+				cSc = 0;
+				vf = 0;
+			} else {
+				vf = df[lvl - 1];
+			}
+
+		}
+
+		function render() {
+			// game.debug.spriteInfo(ball, 32, 32);
+		}
+
+
+
+		function addBall() {
+			ang = Math.random() * Math.PI / 4;
+			ang2 = ang / Math.sqrt(1 - ang * ang);
+			ball = balls.create(-r * Math.cos(ang2) / Math.sin(ang2 + Math.PI / 4), r * Math.sin(ang2) / Math.sin(ang2 + Math.PI / 4), 'ball');
+			ball.body.velocity.x = -speed;
+			ball.body.velocity.y = speed * Math.sin(ang);
+			ball.inputEnabled = true;
+			ball.events.onInputDown.add(Act, this);
+			ball.name = 'a';
+		}
+
+
+
+		function Act(bll) {
+			if (!gameOver) {
+				speed += speedUp;
+				if (shot % vf == 0) {
+					cSc = Math.floor(Math.random() * vf/2);
+					//console.log(cSc);
+				}
+
+				if (shot % vf == cSc) {
+					addBall();
+				}
+
+				addBall();
+				bll.body.velocity.y *= bendFact;
+				bll.body.velocity.x /= bendFact;
+				tint = 386568;
+				bll.tint = tint;
+				bll.name = 'b';
+				if (levelFinished) levelFinished = !levelFinished;
+				shot++;
+
+			}
+		}
+
+
+		function clld(wall, ball) {
+			if (ball.name == 'b') {
+				ball.body.velocity.x = 0;
+				ball.body.velocity.y = speed * 3;
+				ball.name = 'c';
+			} else if (ball.name == 'a') {
+				ball.body.velocity.x = 0;
+				ball.body.velocity.y = 0;
+				var kb = game.add.sprite(ball.body.x, ball.body.y, 'kaboom');
+				kb.anchor.setTo(0.5, 0.5);
+				kb.animations.add('fire');
+				kb.animations.play('fire', 20, false, true);
+				ball.kill();
+				gameOver = true;
+				GameOver();
+
+			}
+
+
+		}
+
+
+		function showIt(startTime, txt, duration) {
+			game.time.events.add(Phaser.Timer.SECOND * startTime / 1000, function () {
+				text.text = txt;
+				if (duration != 0)
+					game.time.events.add(Phaser.Timer.SECOND * duration / 1000, function () {
+						text.text = '';
+					}, this);
+			}, this);
+
+		}
+
+
+
+		function swp(wall2, ball) {
+			ball.body.velocity.x = -speed * 3;
+			ball.body.velocity.y = 0;
+		}
+
+
+		function allw(barr, ball) {
+			ball.body.velocity.x = -speed;
+			ball.body.velocity.y = speed * Math.sin(ang);
+		}
+
+
+		function GameOver() {
+			score.text = '';
+			showIt(500, "Game Over\n Score:" + shot + '\n\n\n\nPress Spacebar \nto start again.', 0);
+			kaBoom();
+		}
+
+		function kaBoom() {
+			var item = balls.getFirstAlive();
+			if (item) {
+				var kb = game.add.sprite(item.body.x, item.body.y, 'kaboom');
+				kb.anchor.setTo(0.5, 0.5);
+				kb.animations.add('fire');
+				kb.animations.play('fire', 20, false, true);
+				item.kill();
+				kaBoom();
+			}
+
+		}
+
+
+		vic = -1;
+
+
+
+
+
+		function killAll() {
+			var item = balls.getFirstAlive();
+			if (item) {
+				item.kill();
+				killAll();
+			}
+
+		}
+	</script>
+
+</body>
+
+</html>
